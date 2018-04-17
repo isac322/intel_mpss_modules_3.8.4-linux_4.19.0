@@ -41,6 +41,9 @@
 #include "mic/micscif_rma_list.h"
 #if !defined(WINDOWS) && !defined(CONFIG_PREEMPT)
 #include <linux/sched.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#include <linux/nmi.h>
+#endif
 #endif
 #include <linux/highmem.h>
 #ifndef _MIC_SCIF_
@@ -823,7 +826,11 @@ error:
 
 #if !defined(WINDOWS) && !defined(CONFIG_PREEMPT)
 static int softlockup_threshold = 60;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+static void avert_softlockup(struct timer_list *data)
+#else
 static void avert_softlockup(unsigned long data)
+#endif
 {
 	*(unsigned long*)data = 1;
 }
@@ -839,7 +846,7 @@ static void avert_softlockup(unsigned long data)
  */
 static inline void add_softlockup_timer(struct timer_list *timer, unsigned long *data)
 {
-	setup_timer(timer, avert_softlockup, (unsigned long) data);
+	timer_setup(timer, avert_softlockup, (unsigned long) data);
 	timer->expires = jiffies + usecs_to_jiffies(softlockup_threshold * 1000000 / 3);
 	add_timer(timer);
 }

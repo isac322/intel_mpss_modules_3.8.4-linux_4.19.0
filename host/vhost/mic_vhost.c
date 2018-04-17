@@ -72,8 +72,13 @@ static void vhost_poll_func(struct file *file, wait_queue_head_t *wqh,
 	add_wait_queue(wqh, &poll->wait);
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
+static int vhost_poll_wakeup(wait_queue_entry_t *wait, unsigned mode, int sync,
+			     void *key)
+#else
 static int vhost_poll_wakeup(wait_queue_t *wait, unsigned mode, int sync,
 			     void *key)
+#endif
 {
 	struct vhost_poll *poll = container_of(wait, struct vhost_poll, wait);
 

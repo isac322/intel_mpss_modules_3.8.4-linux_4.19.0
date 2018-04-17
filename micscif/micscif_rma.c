@@ -59,7 +59,7 @@ static void scif_mmu_notifier_release(struct mmu_notifier *mn,
 			struct mm_struct *mm);
 static void scif_mmu_notifier_invalidate_page(struct mmu_notifier *mn,
 				struct mm_struct *mm,
-				unsigned long address);
+				unsigned long start, unsigned long end);
 static void scif_mmu_notifier_invalidate_range_start(struct mmu_notifier *mn,
 				       struct mm_struct *mm,
 				       unsigned long start, unsigned long end);
@@ -70,7 +70,7 @@ static const struct mmu_notifier_ops scif_mmu_notifier_ops = {
 	.release = scif_mmu_notifier_release,
 	.clear_flush_young = NULL,
 	.change_pte = NULL,/*TODO*/
-	.invalidate_page = scif_mmu_notifier_invalidate_page,
+	.invalidate_range = scif_mmu_notifier_invalidate_page,
 	.invalidate_range_start = scif_mmu_notifier_invalidate_range_start,
 	.invalidate_range_end = scif_mmu_notifier_invalidate_range_end};
 
@@ -88,14 +88,14 @@ static void scif_mmu_notifier_release(struct mmu_notifier *mn,
 
 static void scif_mmu_notifier_invalidate_page(struct mmu_notifier *mn,
 				struct mm_struct *mm,
-				unsigned long address)
+				unsigned long start, unsigned long end)
 {
 	struct endpt *ep;
 	struct rma_mmu_notifier	*mmn;
 	mmn = container_of(mn, struct rma_mmu_notifier, ep_mmu_notifier);
 	ep = mmn->ep;
-	micscif_rma_destroy_tcw(mmn, ep, true, address, PAGE_SIZE);
-	pr_debug("%s address 0x%lx\n", __func__, address);
+	micscif_rma_destroy_tcw(mmn, ep, true, start, end - start);
+	pr_debug("%s address 0x%lx\n", __func__, start);
 	return;
 }
 
@@ -413,7 +413,11 @@ int micscif_destroy_pinned_pages(struct scif_pinned_pages *pinned_pages)
 				BUG_ON(!page_count(pinned_pages->pages[j]));
 				BUG_ON(atomic_long_sub_return(1, &ms_info.rma_pin_cnt) < 0);
 #endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0))
+				put_page(pinned_pages->pages[j]);
+#else
 				page_cache_release(pinned_pages->pages[j]);
+#endif
 			}
 		}
 	}

@@ -920,7 +920,12 @@ micvnet_setup(struct net_device *dev)
 
 	/* Initialize the device structure. */
 	dev->netdev_ops = &micvnet_netdev_ops;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 9))
+	dev->needs_free_netdev = false;
+	dev->priv_destructor = free_netdev;
+#else
 	dev->destructor = free_netdev;
+#endif
 
 	/* Fill in device structure with ethernet-generic values. */
 	dev->mtu = MICVNET_MAX_MTU;

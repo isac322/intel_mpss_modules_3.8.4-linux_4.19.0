@@ -41,6 +41,9 @@
 #include "mic/io_interface.h"
 #include "mic/mic_pm.h"
 #include "mic/micveth.h"
+#ifdef CONFIG_PCI_MSI
+#include <linux/pci.h>
+#endif
 
 MODULE_LICENSE("GPL");
 MODULE_INFO(build_number, BUILD_NUMBER);
@@ -308,8 +311,13 @@ mic_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	if (mic_msi_enable){
 		for (i = 0; i < MIC_NUM_MSIX_ENTRIES; i ++)
 			bd_info->bi_msix_entries[i].entry = i;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))
+		err = pci_enable_msix_range(mic_ctx->bi_pdev, bd_info->bi_msix_entries,
+				      MIC_NUM_MSIX_ENTRIES, MIC_NUM_MSIX_ENTRIES);
+#else
 		err = pci_enable_msix(mic_ctx->bi_pdev, bd_info->bi_msix_entries,
 				      MIC_NUM_MSIX_ENTRIES);
+#endif
 		if (err == 0 ) {
 			// Only support 1 MSIx for now
 			err = request_irq(bd_info->bi_msix_entries[0].vector,
@@ -778,7 +786,11 @@ mic_load_file(const char* fn, uint8_t* buffer, uint32_t max_size)
 		goto cleanup_filp;
 	}
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+	c = kernel_read(filp, buffer, filp_size, &pos);
+#else
 	c = vfs_read(filp, buffer, filp_size, &pos);
+#endif
 	if(c != (long)filp_size) {
 		status = -1; //FIXME
 		goto cleanup_filp;

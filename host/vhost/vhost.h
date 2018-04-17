@@ -45,7 +45,11 @@ struct vhost_work {
 struct vhost_poll {
 	poll_table                table;
 	wait_queue_head_t        *wqh;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
+	wait_queue_entry_t        wait;
+#else
 	wait_queue_t              wait;
+#endif
 	struct vhost_work	  work;
 	unsigned long		  mask;
 	struct vhost_dev	 *dev;
@@ -216,10 +220,20 @@ int vhost_zerocopy_signal_used(struct vhost_virtqueue *vq);
 	 smp_read_barrier_depends(); \
 	 (_________p1); \
 	 })
-#else
+#elif (LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0))
 #define __rcu_dereference_index_check(p, c) \
 	({ \
 	 typeof(p) _________p1 = ACCESS_ONCE(p); \
+	 RCU_LOCKDEP_WARN(c, \
+		 "suspicious rcu_dereference_index_check()" \
+		 " usage"); \
+	 smp_read_barrier_depends(); \
+	 (_________p1); \
+	})
+#else
+#define __rcu_dereference_index_check(p, c) \
+	({ \
+	 typeof(p) _________p1 = READ_ONCE(p); \
 	 RCU_LOCKDEP_WARN(c, \
 		 "suspicious rcu_dereference_index_check()" \
 		 " usage"); \

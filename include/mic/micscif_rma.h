@@ -66,6 +66,10 @@
 #include <linux/semaphore.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+#include <linux/sched/mm.h>
+#include <linux/sched/signal.h>
+#endif
 #include <linux/delay.h>
 #include <linux/wait.h>
 #include <asm/bug.h>
