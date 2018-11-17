@@ -97,10 +97,11 @@ mic_pin_user_pages (void *data, struct page **pages, uint32_t len, int32_t *nf_p
 	// pin the user pages; use semaphores on linux for doing the same
 	down_read(&current->mm->mmap_sem);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
-    *nf_pages = (int32_t)get_user_pages((uint64_t)data, nr_pages,
-                                        PROT_WRITE ? FOLL_WRITE : 0, pages, NULL);
+    *nf_pages = (int32_t)get_user_pages_remote(current, current->mm,
+                                               (uint64_t)data, nr_pages, FOLL_WRITE|FOLL_FORCE, pages, NULL);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0))
-    *nf_pages = (int32_t)get_user_pages((uint64_t)data, nr_pages, PROT_WRITE, 1, pages, NULL);
+    *nf_pages = (int32_t)get_user_pages_remote(current, current->mm,
+                                               (uint64_t)data, nr_pages, PROT_WRITE, 1, pages, NULL);
 #else
     *nf_pages = (int32_t)get_user_pages(current, current->mm, (uint64_t)data,
                                         nr_pages, PROT_WRITE, 1, pages, NULL);
