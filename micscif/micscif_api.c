@@ -1985,6 +1985,7 @@ retry:
 		pinned_pages->nr_pages = get_user_pages_remote(
 #else
 		pinned_pages->nr_pages = get_user_pages(
+#endif
 				current,
 				mm,
 				(uint64_t)addr,
@@ -1996,7 +1997,11 @@ retry:
 				0,
 #endif
 				pinned_pages->pages,
-				pinned_pages->vma);
+				pinned_pages->vma
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+                                ,NULL
+#endif
+                );
 		up_write(&mm->mmap_sem);
 		if (nr_pages == pinned_pages->nr_pages) {
 #ifdef RMA_DEBUG

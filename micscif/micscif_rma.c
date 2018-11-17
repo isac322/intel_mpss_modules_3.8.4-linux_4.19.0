@@ -60,9 +60,16 @@ static void scif_mmu_notifier_release(struct mmu_notifier *mn,
 static void scif_mmu_notifier_invalidate_page(struct mmu_notifier *mn,
 				struct mm_struct *mm,
 				unsigned long start, unsigned long end);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+static int scif_mmu_notifier_invalidate_range_start(struct mmu_notifier *mn,
+                                       struct mm_struct *mm,
+                                       unsigned long start, unsigned long end,
+                                       bool blockable);
+#else
 static void scif_mmu_notifier_invalidate_range_start(struct mmu_notifier *mn,
-				       struct mm_struct *mm,
-				       unsigned long start, unsigned long end);
+                                       struct mm_struct *mm,
+                                       unsigned long start, unsigned long end);
+#endif
 static void scif_mmu_notifier_invalidate_range_end(struct mmu_notifier *mn,
 				     struct mm_struct *mm,
 				     unsigned long start, unsigned long end);
@@ -99,9 +106,16 @@ static void scif_mmu_notifier_invalidate_page(struct mmu_notifier *mn,
 	return;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+static int scif_mmu_notifier_invalidate_range_start(struct mmu_notifier *mn,
+				       struct mm_struct *mm,
+				       unsigned long start, unsigned long end,
+                                       bool blockable)
+#else
 static void scif_mmu_notifier_invalidate_range_start(struct mmu_notifier *mn,
 				       struct mm_struct *mm,
 				       unsigned long start, unsigned long end)
+#endif
 {
 	struct endpt *ep;
 	struct rma_mmu_notifier	*mmn;
@@ -109,7 +123,11 @@ static void scif_mmu_notifier_invalidate_range_start(struct mmu_notifier *mn,
 	ep = mmn->ep;
 	micscif_rma_destroy_tcw(mmn, ep, true, (uint64_t)start, (uint64_t)(end - start));
 	pr_debug("%s start=%lx, end=%lx\n", __func__, start, end);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+	return 0;
+#else
 	return;
+#endif
 }
 
 static void scif_mmu_notifier_invalidate_range_end(struct mmu_notifier *mn,
